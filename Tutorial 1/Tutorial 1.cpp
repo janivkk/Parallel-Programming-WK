@@ -12,12 +12,12 @@ void print_help() {
 	std::cerr << "  -h : print this message" << std::endl;
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
 	//Part 1 - handle command line options such as device selection, verbosity, etc.
 	int platform_id = 0;
 	int device_id = 0;
 
-	for (int i = 1; i < argc; i++)	{
+	for (int i = 1; i < argc; i++) {
 		if ((strcmp(argv[i], "-p") == 0) && (i < (argc - 1))) { platform_id = atoi(argv[++i]); }
 		else if ((strcmp(argv[i], "-d") == 0) && (i < (argc - 1))) { device_id = atoi(argv[++i]); }
 		else if (strcmp(argv[i], "-l") == 0) { std::cout << ListPlatformsDevices() << std::endl; }
@@ -34,7 +34,12 @@ int main(int argc, char **argv) {
 		std::cout << "Running on " << GetPlatformName(platform_id) << ", " << GetDeviceName(platform_id, device_id) << std::endl;
 
 		//create a queue to which we will push commands for the device
-		cl::CommandQueue queue(context);
+		cl::CommandQueue queue(context, CL_QUEUE_PROFILING_ENABLE);
+
+		//	Create an event and attach it to a queue command responsible for the kernel lunch
+		cl::Event prof_event;
+
+		cl::Event A_event;
 
 		//2.2 Load & build the device code
 		cl::Program::Sources sources;
@@ -58,9 +63,13 @@ int main(int argc, char **argv) {
 		//host - input
 		std::vector<int> A = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }; //C++11 allows this type of initialisation
 		std::vector<int> B = { 0, 1, 2, 0, 1, 2, 0, 1, 2, 0 };
-		
+
+		//	Accommodate larger input arrays/vectors
+		//std::vector<int> A(10);
+		//std::vector<int> B(10);
+
 		size_t vector_elements = A.size();//number of elements
-		size_t vector_size = A.size()*sizeof(int);//size in bytes
+		size_t vector_size = A.size() * sizeof(int);//size in bytes
 
 		//host - output
 		std::vector<int> C(vector_elements);
@@ -80,16 +89,37 @@ int main(int argc, char **argv) {
 		cl::Kernel kernel_add = cl::Kernel(program, "add");
 		kernel_add.setArg(0, buffer_A);
 		kernel_add.setArg(1, buffer_B);
-		kernel_add.setArg(2, buffer_C);
+		kernel_add.setArg(0, buffer_C);
 
-		queue.enqueueNDRangeKernel(kernel_add, cl::NullRange, cl::NDRange(vector_elements), cl::NullRange);
+		//	Kernel function arguments, just like ^
+		cl::Kernel kernel_mult = cl::Kernel(program, "mult");
+		kernel_mult.setArg(0, buffer_A);
+		kernel_mult.setArg(1, buffer_B);
+		kernel_mult.setArg(2, buffer_C);
+
+		//	Kernel launches into the queue in the right order
+		queue.enqueueNDRangeKernel(kernel_mult, cl::NullRange, cl::NDRange(vector_elements), cl::NullRange);
+
+		//	Added NULL, &prof_event as per task requirement
+		//	Total number of kernel launches is equal to the vector length, which is specified as a parameter for the ... cl::NDRange(vector_elements)
+		queue.enqueueNDRangeKernel(kernel_add, cl::NullRange, cl::NDRange(vector_elements), cl::NullRange, NULL, &prof_event);
 
 		//4.3 Copy the result from device to host
 		queue.enqueueReadBuffer(buffer_C, CL_TRUE, 0, vector_size, &C[0]);
 
+		//	Profiling a copy operation on Vector A
+		queue.enqueueWriteBuffer(buffer_A, CL_TRUE, 0, vector_size, &A[0], NULL, &A_event);
+
+		//	Prints out the vector elements
 		std::cout << "A = " << A << std::endl;
 		std::cout << "B = " << B << std::endl;
 		std::cout << "C = " << C << std::endl;
+
+		//	Display the kernel execution time at the end of the program
+		std::cout << "Kernel execution time [ns]: " << prof_event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - prof_event.getProfilingInfo<CL_PROFILING_COMMAND_START>() << std::endl;
+
+		//	Detailed breakdown of our event in ms, full info about each profiling event including enqueueing and prep time
+		std::cout << GetFullProfilingInfo(prof_event, ProfilingResolution::PROF_US) << std::endl;
 	}
 	catch (cl::Error err) {
 		std::cerr << "ERROR: " << err.what() << ", " << getErrorString(err.err()) << std::endl;
