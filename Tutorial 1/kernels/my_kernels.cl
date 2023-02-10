@@ -7,11 +7,28 @@ kernel void add(global const int* A, global const int* B, global int* C) {
 	//C[id] = A[id] * B[id];
 }
 
-// Performs a parallel multiplication operation
+// Performs a parallel multiplication operation, kernel indicates it is an OpenCL func
 kernel void mult(global const int* A, global const int* B, global int* C) {
 	//	ID is a corresponding element variable, each launch gets a separate and unique ID
 	int id = get_global_id(0);
 	C[id] = A[id] * B[id];
+}
+
+kernel void multadd(global const int* A, global const int* B, global int* C) {
+	int id = get_global_id(0);
+	C[id] = A[id] * B[id] + B[id];
+}
+
+//	Float addition
+kernel void addf(global const float* A, global const float* B, global float* C) {
+	int id = get_global_id(0);
+	C[id] = A[id] + B[id];
+}
+
+// Double addition -> not all OpenCL devices support double variables.
+kernel void add_d(global const double* A, global const double* B, global double* C) {
+	int id = get_global_id(0);
+	C[id] = A[id] + B[id];
 }
 
 //a simple smoothing kernel averaging values in a local window (radius 1)

@@ -64,6 +64,10 @@ int main(int argc, char** argv) {
 		std::vector<int> A = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }; //C++11 allows this type of initialisation
 		std::vector<int> B = { 0, 1, 2, 0, 1, 2, 0, 1, 2, 0 };
 
+		//host - input ... but float or double for precision
+		//std::vector<float> A = { 0, 1.1, 2.3, 3.5, 4.1, 5.6, 6.7, 7.7, 8.1, 9.8 };
+		//std::vector<float> B = { 0, 1.2, 2.5, 0, 1.5, 2.1, 0.4, 1.1, 2.3, 0.7 };
+	
 		//	Accommodate larger input arrays/vectors
 		//std::vector<int> A(10);
 		//std::vector<int> B(10);
@@ -71,8 +75,13 @@ int main(int argc, char** argv) {
 		size_t vector_elements = A.size();//number of elements
 		size_t vector_size = A.size() * sizeof(int);//size in bytes
 
+		//size_t vector_elements = A.size(); // number of elements
+		//size_t vector_size = A.size() * sizeof(float); //	size in bytes
+
 		//host - output
 		std::vector<int> C(vector_elements);
+
+		//std::vector<float> C(vector_elements);
 
 		//device - buffers
 		cl::Buffer buffer_A(context, CL_MEM_READ_WRITE, vector_size);
@@ -87,9 +96,11 @@ int main(int argc, char** argv) {
 
 		//4.2 Setup and execute the kernel (i.e. device code)
 		cl::Kernel kernel_add = cl::Kernel(program, "add");
-		kernel_add.setArg(0, buffer_A);
-		kernel_add.setArg(1, buffer_B);
+		////	Parallel addition simply overrides the values storedin vector C
+		//kernel_add.setArg(0, buffer_A);
 		kernel_add.setArg(0, buffer_C);
+		kernel_add.setArg(1, buffer_B);
+		kernel_add.setArg(2, buffer_C);
 
 		//	Kernel function arguments, just like ^
 		cl::Kernel kernel_mult = cl::Kernel(program, "mult");
@@ -97,12 +108,37 @@ int main(int argc, char** argv) {
 		kernel_mult.setArg(1, buffer_B);
 		kernel_mult.setArg(2, buffer_C);
 
+		// Complex function of C = A * B + B
+		/*cl::Kernel kernel_multadd = cl::Kernel(program, "multadd");
+		kernel_multadd.setArg(0, buffer_A);
+		kernel_multadd.setArg(1, buffer_B);
+		kernel_multadd.setArg(2, buffer_C);*/
+
+		//	Kernel function that adds float in parallel
+		/*Kernel execution time [ns]: 72704
+		Queued 2, Submitted 11, Executed 72, Total 87 [us]*/
+		//cl::Kernel kernel_addf = cl::Kernel(program, "addf");
+		//kernel_addf.setArg(0, buffer_A);
+		//kernel_addf.setArg(1, buffer_B);
+		//kernel_addf.setArg(2, buffer_C);
+
 		//	Kernel launches into the queue in the right order
-		queue.enqueueNDRangeKernel(kernel_mult, cl::NullRange, cl::NDRange(vector_elements), cl::NullRange);
+		queue.enqueueNDRangeKernel(kernel_mult, cl::NullRange, cl::NDRange(vector_elements), cl::NullRange, NULL, &prof_event);
 
 		//	Added NULL, &prof_event as per task requirement
 		//	Total number of kernel launches is equal to the vector length, which is specified as a parameter for the ... cl::NDRange(vector_elements)
+
+		//	Performance: Kernel execution time [ns]: 4096
+		//	Queued 2, Submitted 7, Executed 4, Total 13[us] for default vectors
 		queue.enqueueNDRangeKernel(kernel_add, cl::NullRange, cl::NDRange(vector_elements), cl::NullRange, NULL, &prof_event);
+
+		//	Performance: Kernel execution time [ns]: 27456
+		//	Queued 2, Submitted 11, Executed 27, Total 40[us] for default vectors
+
+		//queue.enqueueNDRangeKernel(kernel_multadd, cl::NullRange, cl::NDRange(vector_elements), cl::NullRange, NULL, &prof_event);
+
+		//	Performs the longest.
+		//queue.enqueueNDRangeKernel(kernel_addf, cl::NullRange, cl::NDRange(vector_elements), cl::NullRange, NULL, &prof_event);
 
 		//4.3 Copy the result from device to host
 		queue.enqueueReadBuffer(buffer_C, CL_TRUE, 0, vector_size, &C[0]);
