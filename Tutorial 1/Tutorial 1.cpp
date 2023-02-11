@@ -12,6 +12,8 @@ void print_help() {
 	std::cerr << "  -h : print this message" << std::endl;
 }
 
+//	Laptop hardware sees: APP AMD & AMD CPU with vendor from Intel [2 platforms with device each]
+
 int main(int argc, char** argv) {
 	//Part 1 - handle command line options such as device selection, verbosity, etc.
 	int platform_id = 0;
