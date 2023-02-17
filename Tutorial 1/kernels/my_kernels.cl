@@ -3,6 +3,16 @@ kernel void add(global const int* A, global const int* B, global int* C) {
 	int id = get_global_id(0);
 	C[id] = A[id] + B[id];
 
+	printf("work item id = %d\n", id);
+
+	//	perform this part only once i.e., for work item 0
+	if (id == 0) {
+		printf("work group size %d\n", get_local_size(0));
+	}
+
+	int loc_id = get_local_id(0);
+	printf("global id=%d, local id=%d\n", id, loc_id); // do it for each work item
+
 	//	Kernel uses multipplication instead of addition
 	//C[id] = A[id] * B[id];
 }

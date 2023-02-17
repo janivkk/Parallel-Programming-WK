@@ -1,5 +1,8 @@
 #include <iostream>
 #include <vector>
+#include <random>
+#include <algorithm>
+#include <iterator>
 
 #include "Utils.h"
 
@@ -63,13 +66,28 @@ int main(int argc, char** argv) {
 
 		//Part 3 - memory allocation
 		//host - input
-		std::vector<int> A = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }; //C++11 allows this type of initialisation
-		std::vector<int> B = { 0, 1, 2, 0, 1, 2, 0, 1, 2, 0 };
+		//std::vector<int> A = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }; //C++11 allows this type of initialisation
+		//std::vector<int> B = { 0, 1, 2, 0, 1, 2, 0, 1, 2, 0 };
+
+		//https://stackoverflow.com/questions/21516575/fill-a-vector-with-random-numbers-c
+		random_device rnd_device;
+		mt19937 mersenne_engine{ rnd_device() }; // Generates random integers
+		uniform_int_distribution<int> dist{ 1, 10 }; // min & max
+
+		auto gen = [&dist, &mersenne_engine]() {
+			return dist(mersenne_engine);
+		};
+
+		std::vector<int> A(10);
+		std::vector<int> B(10);
+
+		generate(begin(A), end(A), gen);
+		generate(begin(B), end(B), gen);
 
 		//host - input ... but float or double for precision
 		//std::vector<float> A = { 0, 1.1, 2.3, 3.5, 4.1, 5.6, 6.7, 7.7, 8.1, 9.8 };
 		//std::vector<float> B = { 0, 1.2, 2.5, 0, 1.5, 2.1, 0.4, 1.1, 2.3, 0.7 };
-	
+
 		//	Accommodate larger input arrays/vectors
 		//std::vector<int> A(10);
 		//std::vector<int> B(10);
@@ -100,15 +118,22 @@ int main(int argc, char** argv) {
 		cl::Kernel kernel_add = cl::Kernel(program, "add");
 		////	Parallel addition simply overrides the values storedin vector C
 		//kernel_add.setArg(0, buffer_A);
-		kernel_add.setArg(0, buffer_C);
+		kernel_add.setArg(0, buffer_A);
 		kernel_add.setArg(1, buffer_B);
 		kernel_add.setArg(2, buffer_C);
 
+		//	Recommended values for the work group size can be identified by reading a kernel property ...
+		cl::Device device = context.getInfo<CL_CONTEXT_DEVICES>()[0]; //	get device
+		std::cerr << "Recommended values for the work group size: " << kernel_add.getWorkGroupInfo<CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE>(device) << std::endl;
+
+		//	Maximum recommended values ...
+		std::cerr << "Max rec. values for the work group size: " << kernel_add.getWorkGroupInfo<CL_KERNEL_WORK_GROUP_SIZE>(device) << std::endl;
+
 		//	Kernel function arguments, just like ^
-		cl::Kernel kernel_mult = cl::Kernel(program, "mult");
+		/*cl::Kernel kernel_mult = cl::Kernel(program, "mult");
 		kernel_mult.setArg(0, buffer_A);
 		kernel_mult.setArg(1, buffer_B);
-		kernel_mult.setArg(2, buffer_C);
+		kernel_mult.setArg(2, buffer_C);*/
 
 		// Complex function of C = A * B + B
 		/*cl::Kernel kernel_multadd = cl::Kernel(program, "multadd");
@@ -125,7 +150,7 @@ int main(int argc, char** argv) {
 		//kernel_addf.setArg(2, buffer_C);
 
 		//	Kernel launches into the queue in the right order
-		queue.enqueueNDRangeKernel(kernel_mult, cl::NullRange, cl::NDRange(vector_elements), cl::NullRange, NULL, &prof_event);
+		/*queue.enqueueNDRangeKernel(kernel_mult, cl::NullRange, cl::NDRange(vector_elements), cl::NullRange, NULL, &prof_event);*/
 
 		//	Added NULL, &prof_event as per task requirement
 		//	Total number of kernel launches is equal to the vector length, which is specified as a parameter for the ... cl::NDRange(vector_elements)
@@ -133,6 +158,9 @@ int main(int argc, char** argv) {
 		//	Performance: Kernel execution time [ns]: 4096
 		//	Queued 2, Submitted 7, Executed 4, Total 13[us] for default vectors
 		queue.enqueueNDRangeKernel(kernel_add, cl::NullRange, cl::NDRange(vector_elements), cl::NullRange, NULL, &prof_event);
+
+
+		queue.enqueueNDRangeKernel(kernel_add, cl::NullRange, cl::NDRange(vector_elements), cl::NDRange(64));
 
 		//	Performance: Kernel execution time [ns]: 27456
 		//	Queued 2, Submitted 11, Executed 27, Total 40[us] for default vectors
