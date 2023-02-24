@@ -10,7 +10,9 @@ kernel void filter_r(global const uchar* A, global uchar* B) {
 	int colour_channel = id / image_size; // 0 - red, 1 - green, 2 - blue
 
 	//this is just a copy operation, modify to filter out the individual colour channels
-	B[id] = A[id];
+	if (colour_channel == 0) {
+		B[id] = A[id];
+	}
 }
 
 //simple ND identity kernel
