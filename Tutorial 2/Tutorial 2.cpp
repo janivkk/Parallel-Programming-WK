@@ -3,6 +3,7 @@
 
 #include "Utils.h"
 #include "CImg.h"
+#include <include/CL/cl.h>
 
 using namespace cimg_library;
 
