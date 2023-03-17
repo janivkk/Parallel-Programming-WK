@@ -1,3 +1,5 @@
+/*Kernel for Tut 03*/
+
 //fixed 4 step reduce
 kernel void reduce_add_1(global const int* A, global int* B) {
 	int id = get_global_id(0);

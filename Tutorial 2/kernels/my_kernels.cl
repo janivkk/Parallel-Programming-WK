@@ -1,3 +1,15 @@
+/*Kernel for Tutorial 02*/
+
+//a very simple histogram implementation
+kernel void hist_simple(global const int* A, global int* h) {
+	int id = get_global_id(0);
+
+	//assumes that H has been initialised to 0
+	int bin_index = A[id];//take value as a bin index
+
+	atomic_inc(&h[bin_index]);//serial operation, not very efficient!
+}
+
 //a simple OpenCL kernel which copies all pixels from A to B
 kernel void identity(global const uchar* A, global uchar* B) {
 	int id = get_global_id(0);
