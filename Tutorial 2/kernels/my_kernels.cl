@@ -1,13 +1,20 @@
 /*Kernel for Tutorial 02*/
 
 //a very simple histogram implementation
-kernel void hist_simple(global const int* A, global int* h) {
-	int id = get_global_id(0);
+kernel void hist_simple(global const int* A, global int* h, local int* LH, int nr_bins) {
+	int id = get_global_id(0); int lid = get_local_id(0);
 
 	//assumes that H has been initialised to 0
 	int bin_index = A[id];//take value as a bin index
 
-	atomic_inc(&h[bin_index]);//serial operation, not very efficient!
+	barrier(CLK_GLOBAL_MEM_FENCE); //wait for all threads to finish copying
+
+	atomic_inc(&LH[bin_index]);	//serial operation, not very efficient!
+
+	barrier(CLK_GLOBAL_MEM_FENCE); //wait for all threads to finish copying
+
+	//	Combine all local hist into a global one.
+	if (id < nr_bins) atomic_add(&H[id], LH[id]); 
 }
 
 //a simple OpenCL kernel which copies all pixels from A to B

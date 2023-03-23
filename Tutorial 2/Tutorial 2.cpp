@@ -25,10 +25,10 @@ int main(int argc, char **argv) {
 	int device_id = 0;
 	
 	/* Default Images */
-	string image_filename = "test.ppm";
+	//string image_filename = "test.ppm";
 	
 	/* Assignment Images */
-	//string image_filename = "test.pgm";
+	string image_filename = "test.pgm";
 
 	for (int i = 1; i < argc; i++) {
 		if ((strcmp(argv[i], "-p") == 0) && (i < (argc - 1))) { platform_id = atoi(argv[++i]); }
@@ -53,6 +53,7 @@ int main(int argc, char **argv) {
 		//Part 3 - host operations
 		//3.1 Select computing devices
 		std::vector<int> H(256);
+		size_t h_size = H.size() * sizeof(int);
 
 		cl::Context context = GetContext(platform_id, device_id);
 
@@ -60,7 +61,7 @@ int main(int argc, char **argv) {
 		std::cout << "Running on " << GetPlatformName(platform_id) << ", " << GetDeviceName(platform_id, device_id) << std::endl;
 
 		//create a queue to which we will push commands for the device
-		cl::CommandQueue queue(context);
+		cl::CommandQueue queue(context, CL_QUEUE_PROFILING_ENABLE);
 
 		//3.2 Load & build the device code
 		cl::Program::Sources sources;
@@ -88,14 +89,15 @@ int main(int argc, char **argv) {
 //		cl::Buffer dev_convolution_mask(context, CL_MEM_READ_ONLY, convolution_mask.size()*sizeof(float));
 
 		/* Histogram Buffers */
-		cl::Buffer dev_hist_simple_output(context, CL_MEM_READ_WRITE, ..);
+		cl::Buffer dev_hist_simple_output(context, CL_MEM_READ_WRITE, h_size);
 
 		//4.1 Copy images to device memory
 		queue.enqueueWriteBuffer(dev_image_input, CL_TRUE, 0, image_input.size(), &image_input.data()[0]);
 //		queue.enqueueWriteBuffer(dev_convolution_mask, CL_TRUE, 0, convolution_mask.size()*sizeof(float), &convolution_mask[0]);
+		queue.enqueueFillBuffer(dev_hist_simple_output, 0, 0, h_size);
 
 		//4.2 Setup and execute the kernel (i.e. device code)
-		cl::Kernel kernel = cl::Kernel(program, "identity");
+		//cl::Kernel kernel = cl::Kernel(program, "identity");
 		//kernel.setArg(0, dev_image_input);
 		//kernel.setArg(1, dev_image_output);
 //		kernel.setArg(2, dev_convolution_mask);
