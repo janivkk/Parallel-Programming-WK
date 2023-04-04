@@ -52,8 +52,9 @@ int main(int argc, char **argv) {
 
 		//Part 3 - host operations
 		//3.1 Select computing devices
-		std::vector<int> H(256);
-		size_t h_size = H.size() * sizeof(int);
+		typedef int custom_int; std::vector<custom_int> H_bin(256);
+		std::vector<custom_int> CH_bin(256);
+		size_t h_size = H_bin.size() * sizeof(custom_int);
 
 		cl::Context context = GetContext(platform_id, device_id);
 
@@ -90,6 +91,8 @@ int main(int argc, char **argv) {
 
 		/* Histogram Buffers */
 		cl::Buffer dev_hist_simple_output(context, CL_MEM_READ_WRITE, h_size);
+		cl::Buffer dev_hist_cumulative_output(context, CL_MEM_READ_WRITE, h_size);
+		cl::Buffer dev_lut_output(context, CL_MEM_READ_WRITE, h_size);
 
 		//4.1 Copy images to device memory
 		queue.enqueueWriteBuffer(dev_image_input, CL_TRUE, 0, image_input.size(), &image_input.data()[0]);
@@ -103,11 +106,28 @@ int main(int argc, char **argv) {
 //		kernel.setArg(2, dev_convolution_mask);
 
 		/* This line uses Intensity Histogram to describe the distribution of the frequency of each pixel from 0 to 255. */
-		cl::Kernel kernel = cl::Kernel(program, "hist_simple");
-		kernel.setArg(0, dev_image_input);
-		kernel.setArg(1, dev_image_output);
+		cl::Kernel kernel_hist_simple = cl::Kernel(program, "hist_simple");
+		kernel_hist_simple.setArg(0, dev_image_input);
+		kernel_hist_simple.setArg(1, dev_hist_simple_output);
 
-		queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(image_input.size()), cl::NullRange);
+		/* Cumulative Histogram */
+		cl::Kernel kernel_cumulative = cl::Kernel(program, "hist_cumulative");
+		kernel_cumulative.setArg(0, dev_image_input);
+		kernel_cumulative.setArg(1, dev_hist_cumulative_output);
+
+		//cl::Kernel kernel_? = cl::Kernel(program, "/");
+
+		cl::Event prof_event_simple;
+
+		cl::Event prof_event_cumulative;
+
+		queue.enqueueNDRangeKernel(kernel_hist_simple, cl::NullRange, cl::NDRange(image_input.size()), cl::NullRange, NULL, &prof_event_simple);
+		queue.enqueueReadBuffer(dev_hist_simple_output, CL_TRUE, 0, h_size, &H_bin[0]);
+
+		queue.enqueueFillBuffer(dev_hist_cumulative_output, 0, 0, h_size);
+
+		queue.enqueueNDRangeKernel(kernel_cumulative, cl::NullRange, cl::NDRange(image_input.size()), cl::NullRange, NULL, &prof_event_cumulative);
+		queue.enqueueReadBuffer(dev_hist_cumulative_output, CL_TRUE, 0, h_size, &H_bin[0]);
 
 		vector<unsigned char> output_buffer(image_input.size());
 		//4.3 Copy the result from device to host

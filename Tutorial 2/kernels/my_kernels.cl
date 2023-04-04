@@ -1,7 +1,7 @@
 /*Kernel for Tutorial 02*/
 
 //a very simple histogram implementation
-kernel void hist_simple(global const int* A, global int* h, local int* LH, int nr_bins) {
+kernel void hist_simple(global const int* A, global int* H, local int* LH, int nr_bins) {
 	int id = get_global_id(0); int lid = get_local_id(0);
 
 	//assumes that H has been initialised to 0
