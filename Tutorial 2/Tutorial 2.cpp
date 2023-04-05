@@ -1,3 +1,5 @@
+#define INT_BIN_SIZE 256
+
 #include <iostream>
 #include <vector>
 
@@ -52,9 +54,13 @@ int main(int argc, char **argv) {
 
 		//Part 3 - host operations
 		//3.1 Select computing devices
-		typedef int custom_int; std::vector<custom_int> H_bin(256);
+
+		typedef int custom_int; std::vector<custom_int> H_bin(INT_BIN_SIZE);
 		std::vector<custom_int> CH_bin(256);
 		size_t h_size = H_bin.size() * sizeof(custom_int);
+
+		std::vector<custom_int> LH_bin(INT_BIN_SIZE);
+		std::vector<custom_int> nr_bins(INT_BIN_SIZE);
 
 		cl::Context context = GetContext(platform_id, device_id);
 
@@ -93,6 +99,7 @@ int main(int argc, char **argv) {
 		cl::Buffer dev_hist_simple_output(context, CL_MEM_READ_WRITE, h_size);
 		cl::Buffer dev_hist_cumulative_output(context, CL_MEM_READ_WRITE, h_size);
 		cl::Buffer dev_lut_output(context, CL_MEM_READ_WRITE, h_size);
+		cl::Buffer dev_hist_local_simple_output(context, CL_MEM_READ_WRITE, h_size);
 
 		//4.1 Copy images to device memory
 		queue.enqueueWriteBuffer(dev_image_input, CL_TRUE, 0, image_input.size(), &image_input.data()[0]);
@@ -110,6 +117,11 @@ int main(int argc, char **argv) {
 		kernel_hist_simple.setArg(0, dev_image_input);
 		kernel_hist_simple.setArg(1, dev_hist_simple_output);
 
+		/* Local Memory Histogram */
+		cl::Kernel kernel_hist_local_simple = cl::Kernel(program, "hist_local_simple");
+		kernel_hist_local_simple.setArg(0, dev_image_input);
+		kernel_hist_local_simple.setArg(1, dev_hist_local_simple_output);
+
 		/* Cumulative Histogram */
 		cl::Kernel kernel_cumulative = cl::Kernel(program, "hist_cumulative");
 		kernel_cumulative.setArg(0, dev_image_input);
@@ -121,9 +133,17 @@ int main(int argc, char **argv) {
 
 		cl::Event prof_event_cumulative;
 
+		cl::Event prof_event_local_simple;
+
+		/* Simple Histogram Buffers */
 		queue.enqueueNDRangeKernel(kernel_hist_simple, cl::NullRange, cl::NDRange(image_input.size()), cl::NullRange, NULL, &prof_event_simple);
 		queue.enqueueReadBuffer(dev_hist_simple_output, CL_TRUE, 0, h_size, &H_bin[0]);
 
+		/* Local Histogram Buffer */
+		queue.enqueueNDRangeKernel(kernel_hist_local_simple, cl::NullRange, cl::NDRange(image_input.size()), cl::NullRange, NULL, &prof_event_local_simple);
+		queue.enqueueReadBuffer(dev_hist_local_simple_output, CL_TRUE, 0, h_size, &H_bin[0]);
+
+		/* Cumulative Histogram Buffers */
 		queue.enqueueFillBuffer(dev_hist_cumulative_output, 0, 0, h_size);
 
 		queue.enqueueNDRangeKernel(kernel_cumulative, cl::NullRange, cl::NDRange(image_input.size()), cl::NullRange, NULL, &prof_event_cumulative);
@@ -132,6 +152,12 @@ int main(int argc, char **argv) {
 		vector<unsigned char> output_buffer(image_input.size());
 		//4.3 Copy the result from device to host
 		queue.enqueueReadBuffer(dev_image_output, CL_TRUE, 0, output_buffer.size(), &output_buffer.data()[0]);
+
+		/* Information regarding execution times and the size of bins required. */
+
+		std::cout << "Histogram [simple] : " << H_bin << "\t" << "kernel exec. time in ns: " << prof_event_simple.getProfilingInfo<CL_PROFILING_COMMAND_END>() - prof_event_simple.getProfilingInfo<CL_PROFILING_COMMAND_START>() << std::endl;
+
+		std::cout << "Histogram [cumulative] : " << CH_bin << "\t" << "kernel exec. time in ns: " << prof_event_cumulative.getProfilingInfo<CL_PROFILING_COMMAND_END>() - prof_event_cumulative.getProfilingInfo<CL_PROFILING_COMMAND_START>() << std::endl;
 
 		CImg<unsigned char> output_image(output_buffer.data(), image_input.width(), image_input.height(), image_input.depth(), image_input.spectrum());
 		CImgDisplay disp_output(output_image,"output");

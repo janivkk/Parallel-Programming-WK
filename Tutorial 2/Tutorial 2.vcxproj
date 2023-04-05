@@ -160,7 +160,7 @@
       <Device>0</Device>
     </Intel_OpenCL_Build_Rules>
     <ClCompile>
-      <AdditionalIncludeDirectories>D:\C++\pp-a01\include;D:\C++\pp-a01\OpenCL\include;D:\Code\pp-w1-updated\pp-w1\OpenCL\include;D:\Code\pp-w1-updated\pp-w1\OpenCL;D:\Code\pp-w1-updated\pp-w1\include;$(INTELOCLSDKROOT)include;..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\Code\pp-w1\include;D:\Code\pp-w1\OpenCL\include;D:\C++\pp-a01\include;D:\C++\pp-a01\OpenCL\include;D:\Code\pp-w1-updated\pp-w1\OpenCL\include;D:\Code\pp-w1-updated\pp-w1\OpenCL;D:\Code\pp-w1-updated\pp-w1\include;$(INTELOCLSDKROOT)include;..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>__x86_64;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <Optimization>Disabled</Optimization>
       <MinimalRebuild>false</MinimalRebuild>
@@ -171,7 +171,7 @@
       <PrecompiledHeader />
     </ClCompile>
     <Link>
-      <AdditionalLibraryDirectories>D:\C++\pp-a01\OpenCL\lib;D:\Code\pp-w1-updated\pp-w1\OpenCL\lib;$(INTELOCLSDKROOT)lib\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>D:\Code\pp-w1\OpenCL\lib;D:\C++\pp-a01\OpenCL\lib;D:\Code\pp-w1-updated\pp-w1\OpenCL\lib;$(INTELOCLSDKROOT)lib\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>OpenCL.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
