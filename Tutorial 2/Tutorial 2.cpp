@@ -26,11 +26,11 @@ int main(int argc, char **argv) {
 	int platform_id = 0;
 	int device_id = 0;
 	
-	/* Default Images */
+	/* Default Images -> coloured */
 	//string image_filename = "test.ppm";
 	
-	/* Assignment Images */
-	string image_filename = "test.pgm";
+	/* Assignment Images -> monochrome */
+	string image_filename = "test.pgm"; //test_large.pgm
 
 	for (int i = 1; i < argc; i++) {
 		if ((strcmp(argv[i], "-p") == 0) && (i < (argc - 1))) { platform_id = atoi(argv[++i]); }
@@ -128,9 +128,12 @@ int main(int argc, char **argv) {
 //		kernel.setArg(2, dev_convolution_mask);
 
 		/* This line uses Intensity Histogram to describe the distribution of the frequency of each pixel from 0 to 255. */
+		//size_t local_size = 256;
+
 		cl::Kernel kernel_hist_simple = cl::Kernel(program, "hist_simple");
 		kernel_hist_simple.setArg(0, dev_image_input);
 		kernel_hist_simple.setArg(1, dev_hist_simple_output);
+		//kernel_hist_simple.setArg(2, cl::Local(local_size * sizeof(custom_int)));
 
 		/* Simple Histogram Buffers */
 		queue.enqueueNDRangeKernel(kernel_hist_simple, cl::NullRange, cl::NDRange(image_input.size()), cl::NullRange, NULL, &prof_event_simple);
@@ -161,7 +164,7 @@ int main(int argc, char **argv) {
 		kernel_lut_table.setArg(0, dev_image_input);
 		kernel_lut_table.setArg(1, dev_lut_output);
 
-		/* LUT redirective*/
+		/* LUT redirective */
 		cl::Kernel kernel_lut_redirective = cl::Kernel(program, "LUT_redirective");
 		kernel_lut_redirective.setArg(0, dev_image_input);
 		kernel_lut_redirective.setArg(1, dev_lut_output);
@@ -191,6 +194,8 @@ int main(int argc, char **argv) {
 		std::cout << "Histogram [simple] : " << H_bin << "\t" << "kernel exec. time in ns: " << prof_event_simple.getProfilingInfo<CL_PROFILING_COMMAND_END>() - prof_event_simple.getProfilingInfo<CL_PROFILING_COMMAND_START>() << "\n";
 
 		/*std::cout << "Histogram [simple using local privisatiation] : " << H_local_bin << "\t" << "kernel exec. time in ns: " << prof_event_local_simple.getProfilingInfo<CL_PROFILING_COMMAND_END>() - prof_event_local_simple.getProfilingInfo<CL_PROFILING_COMMAND_START>() << "\n";*/
+
+		//prof_event_simple.getProfilingInfo<CL_PROFILING_CS>();
 
 		std::cout << "Histogram [cumulative] : " << CH_bin << "\t" << "kernel exec. time in ns: " << prof_event_cumulative.getProfilingInfo<CL_PROFILING_COMMAND_END>() - prof_event_cumulative.getProfilingInfo<CL_PROFILING_COMMAND_START>() << "\n";
 
