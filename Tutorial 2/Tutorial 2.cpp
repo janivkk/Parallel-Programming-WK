@@ -199,7 +199,7 @@ int main(int argc, char **argv) {
 
 		std::cout << "Histogram [cumulative] : " << CH_bin << "\t" << "kernel exec. time in ns: " << prof_event_cumulative.getProfilingInfo<CL_PROFILING_COMMAND_END>() - prof_event_cumulative.getProfilingInfo<CL_PROFILING_COMMAND_START>() << "\n";
 
-		std::cout << "LUT table look-up : " << LUT_table << "\t" << "kernel exec. time in ns: " << prof_event_lut.getProfilingInfo<CL_PROFILING_COMMAND_END>() - prof_event_lut.getProfilingInfo<CL_PROFILING_COMMAND_START>() << "\n";
+		std::cout << "Histogram [normalised & LUT] : " << LUT_table << "\t" << "kernel exec. time in ns: " << prof_event_lut.getProfilingInfo<CL_PROFILING_COMMAND_END>() - prof_event_lut.getProfilingInfo<CL_PROFILING_COMMAND_START>() << "\n";
 
 		CImg<unsigned char> output_image(output_buffer.data(), image_input.width(), image_input.height(), image_input.depth(), image_input.spectrum());
 		CImgDisplay disp_output(output_image,"output");
